@@ -31,19 +31,23 @@ yTrain = np.array(steeringMeasurements)
 
 # Using keras to build and train the model.
 from keras.models import Sequential
-from keras.layers import Flatten, Dense 
+from keras.layers import Flatten, Dense, Lambda
 # building a sequential regression network (not an classification network).
 # the model will be trained on the image and using streeing measurements as output data.
 # single output node will predict the streeing measurement.
 model = Sequential()
+# preprocess data.
+model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
+
 # the input image is of dimention 160 x 320 x 3
-model.add(Flatten(input_shape=(160,320,3)))
+model.add(Flatten())
 # the network has just one output node.
 model.add(Dense(1))
 # Defining mean square error to be the loss functions and using Adam optimizer.
 model.compile(loss='mse', optimizer='adam')
-
-model.fit(xTrain, yTrain, validation_split=0.2, shuffle=True)
-
+# Train the model.
+# 20% of data is reserved for validation data.
+model.fit(xTrain, yTrain, validation_split=0.2, shuffle=True, nb_epoch=4)
+# save the trained model.
 model.save('model.h5')
 
