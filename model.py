@@ -20,10 +20,19 @@ steeringMeasurements = []
 for line in lines:
 	imgPath = line[0]
 	img = cv2.imread(imgPath)
+	# Flipping the image so the network is trained to move in the mirror imaged path too.
+	# This also help generate more training data.
+	flippedImg = np.fliplr(img)
+	# add the original image and the flipped image to the list of camera images.
 	cameraImages.append(img)
+	cameraImages.append(flippedImg)
 
 	measurement = float(line[3])
+	# measurement of steering angle corresponding to the flipped img.
+	measurementFlipped = -measurement
+	# append the steering measurement for the original image and the flipped image.
 	steeringMeasurements.append(measurement)
+	steeringMeasurements.append(measurementFlipped)
 
 # convert the images and measurements to numpy array.
 xTrain = np.array(cameraImages)
