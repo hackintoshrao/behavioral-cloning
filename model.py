@@ -2,6 +2,7 @@ import csv
 import cv2
 import numpy as np
 import random
+from itertools import cycle
 
 # Using keras to build and train the model.
 from keras.models import Sequential
@@ -9,6 +10,7 @@ from keras.layers import Cropping2D
 from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout, ELU
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+
 
 
 def process_get_data(line):
@@ -24,13 +26,14 @@ def process_get_data(line):
 	elif camera == 'right':
 		steering -= correction
 		imgPath = line[2]
-
+	imgPath = '/Users/hackintoshrao/mycode/go/src/github.com/hackintoshrao/behavioral-cloning/data/' + imgPath.strip()
+	#print("img Path: ", imgPath)
 	img = cv2.imread(imgPath)
 	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
     # decide whether to horizontally flip the image:
-    # This is done to reduce the bias for turning left that is present in the training data
+    # This decreases the bias for turning left that is present in the training data
 	flip_prob = np.random.random()
 	if flip_prob > 0.5:
 		    # flip the image and reverse the steering angle
@@ -38,43 +41,6 @@ def process_get_data(line):
 		img= cv2.flip(img, 1)
 
 	img = image_preprocessing(img)
-	"""
-	# Flipping the image so the network is trained to move in the mirror imaged path too.
-	# This also help generate more training data.
-	flippedImg = np.fliplr(img)
-	# add the original image and the flipped image to the list of camera images.
-	cameraImages.append(img)
-	cameraImages.append(flippedImg)
-	"""
-
-
-	"""
-	steeringLeft = steeringCenter + correction
-	steeringRight = steeringCenter - correction
-	# measurement of steering angle corresponding to the flipped img.
-	measurementFlipped = -steeringCenter
-	# append the steering measurement for the original image and the flipped image.
-	steeringMeasurements.append(steeringCenter)
-	steeringMeasurements.append(measurementFlipped)
-
-	# append the left camera image with the correction added to the streering measurement.
-
-	leftImgPath = line[1]
-	leftImg = cv2.imread(leftImgPath)
-	leftImg = cv2.cvtColor(leftImg, cv2.COLOR_BGR2RGB)
-
-	rightImgPath = line[2]
-	rightImg = cv2.imread(rightImgPath)
-	rightImg = cv2.cvtColor(rightImg, cv2.COLOR_BGR2RGB)
-
-
-	cameraImages.append(leftImg)
-	cameraImages.append(rightImg)
-
-	steeringMeasurements.append(steeringLeft)
-	steeringMeasurements.append(steeringRight)
-	"""
-
 	return img, steering
 
 def data_generator(csv_lines, batch_size=64):
@@ -151,8 +117,9 @@ def get_model():
 # Data read from csv. CSV contains the image path and steerig angles recorded at various points of gameplay.
 lines = []
 
-csvPath = "/Users/hackintoshrao/Documents/code/self-drive/driving_log.csv"
+# csvPath = "/Users/hackintoshrao/Documents/code/self-drive/driving_log.csv"
 
+csvPath = "./data/driving_log.csv"
 
 with open(csvPath) as csvData:
 	# read from csv
@@ -184,7 +151,7 @@ validation_data_generator = data_generator(validation_data, batch_size=BATCH_SIZ
 
 model = get_model()
 
-samples_per_epoch = (len(lines)//BATCH_SIZE) * BATCH_SIZE
+samples_per_epoch = (22000//BATCH_SIZE) * BATCH_SIZE
 
 #lines = None
 
@@ -192,46 +159,4 @@ model.fit_generator(training_data_generator, validation_data=validation_data_gen
 
 print("Saving model weights and configuration file.")
 
-model.save('model_all_image.h5')  # always save your weights after training or during training
-with open('model.json', 'w') as outfile:
-    outfile.write(model.to_json())
-
-"""
-for line in lines:
-	imgPath = line[0]
-	img = cv2.imread(imgPath)
-	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-	# Flipping the image so the network is trained to move in the mirror imaged path too.
-	# This also help generate more training data.
-	flippedImg = np.fliplr(img)
-	# add the original image and the flipped image to the list of camera images.
-	cameraImages.append(img)
-	cameraImages.append(flippedImg)
-
-	steeringCenter = float(line[3])
-
-	steeringLeft = steeringCenter + correction
-	steeringRight = steeringCenter - correction
-	# measurement of steering angle corresponding to the flipped img.
-	measurementFlipped = -steeringCenter
-	# append the steering measurement for the original image and the flipped image.
-	steeringMeasurements.append(steeringCenter)
-	steeringMeasurements.append(measurementFlipped)
-
-	# append the left camera image with the correction added to the streering measurement.
-
-	leftImgPath = line[1]
-	leftImg = cv2.imread(leftImgPath)
-	leftImg = cv2.cvtColor(leftImg, cv2.COLOR_BGR2RGB)
-
-	rightImgPath = line[2]
-	rightImg = cv2.imread(rightImgPath)
-	rightImg = cv2.cvtColor(rightImg, cv2.COLOR_BGR2RGB)
-
-
-	cameraImages.append(leftImg)
-	cameraImages.append(rightImg)
-
-	steeringMeasurements.append(steeringLeft)
-	steeringMeasurements.append(steeringRight)
-	"""
+model.save('model_udacity_4.h5')  # always save your weights after training or during training
