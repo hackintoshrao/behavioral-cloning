@@ -2,7 +2,6 @@ import csv
 import cv2
 import numpy as np
 import random
-from itertools import cycle
 
 # Using keras to build and train the model.
 from keras.models import Sequential
@@ -11,39 +10,63 @@ from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout, ELU
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 
+"""
+Obtain the absolute path of the image, the CSV contains only the relative paths of the image.
+"""
+def add_full_path(path):
+	return '/Users/hackintoshrao/mycode/go/src/github.com/hackintoshrao/behavioral-cloning/data/' + path.strip()
+
+"""
+Read the image from its path and convert it to RGB and return.
+"""
+def get_image(path):
+	img = cv2.imread(path)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+	return img
 
 
 def process_get_data(line):
+	"""
+	Randomly choose Center/Left/Right image -> Read the image and steering values -> pre-process image
+	-> flip the image -> return both the original and the flipped image.
+	"""
 	imgPath = line[0]
+	imgPath = add_full_path(imgPath)
+
 	steering = float(line[3])
 	# randomly choose the camera to take the image from
 	camera = np.random.choice(['center', 'left', 'right'])
 
-    # adjust the steering angle for left anf right cameras
-	if camera == 'left':
-		steering += correction
-		imgPath = line[1]
-	elif camera == 'right':
-		steering -= correction
-		imgPath = line[2]
-	imgPath = '/Users/hackintoshrao/mycode/go/src/github.com/hackintoshrao/behavioral-cloning/data/' + imgPath.strip()
-	#print("img Path: ", imgPath)
-	img = cv2.imread(imgPath)
-	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+	# adjust the steering angle for left anf right cameras
+	if camera == 'right':
+		steering_right = steering - correction
+		imgPath_right = line[2]
+		imgPath_right = add_full_path(imgPath_right)
+		imgPath = imgPath_right
+		steering = steering_right
 
+	elif camera == 'left':
+		steering_left = steering + correction
+		imgPath_left = line[1]
+		imgPath_left = add_full_path(imgPath_left)
+		imgPath = imgPath_left
+		steering = steering_left
 
-    # decide whether to horizontally flip the image:
-    # This decreases the bias for turning left that is present in the training data
-	flip_prob = np.random.random()
-	if flip_prob > 0.5:
-		    # flip the image and reverse the steering angle
-		steering = -1*steering
-		img= cv2.flip(img, 1)
+	img = get_image(imgPath)
+
+	steering_flipped = -1*steering
+	img_flipped = cv2.flip(img, 1)
 
 	img = image_preprocessing(img)
-	return img, steering
+	img_flipped = image_preprocessing(img_flipped)
+
+	return img, steering , img_flipped, steering_flipped
 
 def data_generator(csv_lines, batch_size=64):
+	"""
+	data generator, which is used to obtain the traning an validation data in batches
+	while training the model
+	"""
  # Create empty arrays to contain batch of features and labels#
 	X_batch = np.zeros((batch_size, 64, 64, 3), dtype=np.float32)
 	y_batch = np.zeros((batch_size,1), dtype=np.float32)
@@ -53,9 +76,9 @@ def data_generator(csv_lines, batch_size=64):
 	no_batches_per_epoch = (N // batch_size)
 	total_count = 0
 	while True:
-		for j in range(batch_size):
+		for j in range(0, batch_size, 2):
 		# choose random index in features.
-			X_batch[j], y_batch[j] = process_get_data(csv_lines[total_count + j])
+			X_batch[j], y_batch[j], X_batch[j+1], y_batch[j+1] = process_get_data(csv_lines[total_count + j])
 
 		total_count = total_count + batch_size
 		if total_count >= no_batches_per_epoch - 1:
@@ -63,7 +86,6 @@ def data_generator(csv_lines, batch_size=64):
 			total_count = 0
 
 		yield X_batch, y_batch
-
 
 
 def image_preprocessing(image):
@@ -76,7 +98,13 @@ def image_preprocessing(image):
 	image = image/255.0 - 0.5
 	return image
 
+
 def get_model():
+	"""
+	Obtain the convolutional neural network model
+	The model contains 3 convolutional layer and 2 fully connected layer.
+	ELU is used as activation function.
+	"""
 	model = Sequential()
 
 	# Convolution Layer 1.
@@ -117,7 +145,6 @@ def get_model():
 # Data read from csv. CSV contains the image path and steerig angles recorded at various points of gameplay.
 lines = []
 
-# csvPath = "/Users/hackintoshrao/Documents/code/self-drive/driving_log.csv"
 
 csvPath = "./data/driving_log.csv"
 
@@ -138,6 +165,7 @@ training_split = 0.8
 
 training_set_num = int(len(lines) * training_split)
 
+# separate training and validation data and create different generators for them.
 training_data = lines[0:training_set_num-1]
 validation_data = lines[training_set_num:]
 
@@ -146,6 +174,7 @@ print("validation len: ", len(validation_data))
 
 BATCH_SIZE = 64
 
+# obtain generators for training and validation data.
 training_data_generator = data_generator(training_data, batch_size=BATCH_SIZE)
 validation_data_generator = data_generator(validation_data, batch_size=BATCH_SIZE)
 
@@ -153,10 +182,8 @@ model = get_model()
 
 samples_per_epoch = (22000//BATCH_SIZE) * BATCH_SIZE
 
-#lines = None
-
 model.fit_generator(training_data_generator, validation_data=validation_data_generator,samples_per_epoch=samples_per_epoch, nb_epoch=3, nb_val_samples=3000)
 
-print("Saving model weights and configuration file.")
+print("Saving model.")
 
-model.save('model_udacity_4.h5')  # always save your weights after training or during training
+model.save('model_udacity_6.h5')  # always save your weights after training or during training
