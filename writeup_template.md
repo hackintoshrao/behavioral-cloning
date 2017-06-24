@@ -92,10 +92,17 @@ Here is the model architecture table
 | Activation            |       | ELU
 | Dropout               |       | 0.3
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 1024 -> 256
+| Fully connected       |       | output 1024 -> 512
+| Dropout               |       | 0.3
 | Activation            |       | ELU
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 256 -> 1
+| Fully connected       |       | output 512 -> 256
+| Activation            |       | ELU
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| Fully connected       |       | output 256 -> 128
+| Activation            |       | ELU
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| Fully connected       |       | output 128 -> 1
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 - The model includes ELU layers to introduce nonlinearity.
@@ -123,3 +130,8 @@ Here is the model architecture table
 - Randomly chose one of the right/left/center image and used the flipped image too.
 - Used 22000 samples from generator for training each epoch.
 - The model is trained for a total of 3 epochs.
+
+
+####Fixing the first failed submission.
+- In the first submission the car moved out of track on couple of occasions at steep turns.
+- To fix it I made the model more complex by adding 2 more fully connected layers. That fixed the issue. 

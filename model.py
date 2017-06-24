@@ -10,22 +10,48 @@ from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout, ELU
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 
-"""
-Obtain the absolute path of the image, the CSV contains only the relative paths of the image.
-"""
-def add_full_path(path):
-	return '/Users/hackintoshrao/mycode/go/src/github.com/hackintoshrao/behavioral-cloning/data/' + path.strip()
 
-"""
-Read the image from its path and convert it to RGB and return.
-"""
+def add_full_path(path):
+	"""
+	Obtain the absolute path of the image, the CSV contains only the relative paths of the image.
+	"""
+	return '/Users/hackintoshrao/mycode/go/src/github.com/hackintoshrao/behavioral-cloning/data/' + path.strip()
+	#return  path.strip()
+
+
 def get_image(path):
+	"""
+	Read the image from its path and convert it to RGB and return.
+	"""
 	img = cv2.imread(path)
 	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 	return img
 
+def augment_brightness_camera_images(image):
+    '''
+    :param image: Input image
+    :return: output image with reduced brightness
+    '''
+
+    # convert to HSV so that its easy to adjust brightness
+    image1 = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
+
+    # randomly generate the brightness reduction factor
+    # Add a constant so that it prevents the image from being completely dark
+    random_bright = .25+np.random.uniform()
+
+    # Apply the brightness reduction to the V channel
+    image1[:,:,2] = image1[:,:,2]*random_bright
+
+    # convert to RBG again
+    image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
+    return image1
 
 def process_get_data(line):
+	"""
+	Randomly choose Center/Left/Right image -> Read the image and steering values -> pre-process image
+	-> flip the image -> return both the original and the flipped image.
+	"""
 	"""
 	Randomly choose Center/Left/Right image -> Read the image and steering values -> pre-process image
 	-> flip the image -> return both the original and the flipped image.
@@ -54,13 +80,20 @@ def process_get_data(line):
 
 	img = get_image(imgPath)
 
-	steering_flipped = -1*steering
+	flip_prob = np.random.random()
+	#if flip_prob > 0.5:
+        # flip the image and reverse the steering angle
+	steering_flip = -1*steering
 	img_flipped = cv2.flip(img, 1)
 
+	img = augment_brightness_camera_images(img)
+	img_flipped = augment_brightness_camera_images(img_flipped)
+	#steering_flipped = -1*steering
+	#img_flipped = cv2.flip(img, 1)
 	img = image_preprocessing(img)
 	img_flipped = image_preprocessing(img_flipped)
 
-	return img, steering , img_flipped, steering_flipped
+	return img, steering, img_flipped, steering_flip
 
 def data_generator(csv_lines, batch_size=64):
 	"""
@@ -76,11 +109,12 @@ def data_generator(csv_lines, batch_size=64):
 	no_batches_per_epoch = (N // batch_size)
 	total_count = 0
 	while True:
-		for j in range(0, batch_size, 2):
+		for j in range(batch_size//2):
+			k = 2*j
 		# choose random index in features.
-			X_batch[j], y_batch[j], X_batch[j+1], y_batch[j+1] = process_get_data(csv_lines[total_count + j])
+			X_batch[k], y_batch[k], X_batch[k+1], y_batch[k+1] = process_get_data(csv_lines[total_count + j])
 
-		total_count = total_count + batch_size
+		total_count = total_count + batch_size//2
 		if total_count >= no_batches_per_epoch - 1:
             # reset the index, this allows iterating though the dataset again.
 			total_count = 0
@@ -130,7 +164,16 @@ def get_model():
 	model.add(ELU())
 
 	# layer 5
+	model.add(Dense(512))
+	model.add(Dropout(.2))
+	model.add(ELU())
+
+	# layer 6
 	model.add(Dense(256))
+	model.add(ELU())
+
+	# layer 7
+	model.add(Dense(128))
 	model.add(ELU())
 
 
@@ -145,8 +188,9 @@ def get_model():
 # Data read from csv. CSV contains the image path and steerig angles recorded at various points of gameplay.
 lines = []
 
-
 csvPath = "./data/driving_log.csv"
+#csvPath = "/Users/hackintoshrao/Documents/code/self-drive/driving_log.csv"
+
 
 with open(csvPath) as csvData:
 	# read from csv
@@ -172,15 +216,18 @@ validation_data = lines[training_set_num:]
 print("training len: ", len(training_data))
 print("validation len: ", len(validation_data))
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 
 # obtain generators for training and validation data.
 training_data_generator = data_generator(training_data, batch_size=BATCH_SIZE)
 validation_data_generator = data_generator(validation_data, batch_size=BATCH_SIZE)
 
+# fetch the model.
 model = get_model()
 
-samples_per_epoch = (22000//BATCH_SIZE) * BATCH_SIZE
+ # extracts around 22000 samples in each epoch from the generator.
+samples_per_epoch = (20000//BATCH_SIZE) * BATCH_SIZE
+
 
 model.fit_generator(training_data_generator, validation_data=validation_data_generator,samples_per_epoch=samples_per_epoch, nb_epoch=3, nb_val_samples=3000)
 
