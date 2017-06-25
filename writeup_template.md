@@ -31,6 +31,9 @@ My project includes the following files:
 * model.h5 containing a trained convolution neural network
 * writeup_report.md or writeup_report.pdf summarizing the results
 * autonomous_drive.mp4 contains the video of the car driven in autonomous mode.
+* Architecure.png contains the architecture of the network.
+* Folder ./sample_images/ contains the sample images from the dataset.
+* Folder `augument`  contains the augumented images of the samples in `./sample_images`.
 ####2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing
 ```sh
@@ -71,40 +74,7 @@ At the end of the process, the vehicle was able to drive autonomously around the
 
 ####2. Final Model Architecture
 
-Here is the model architecture table
-| Layer                         |     Description
-|:---------------------:|:---------------------------------------------:|
-| Input                 |       | 64x64x3 RGB image
-| Convolution           |       | 5x5 filters, default stride, default padding
-| Activation            |       | ELU
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Convolution           |       | 3 x 3 filters, default stride, default padding
-| Activation            |       | ELU
-| Dropout               |       | 0.25
-| Max pooling           |       | 2x2 stride
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Convolution           |       | 3x3 filters, default stride, default padding
-| Activation            |       | ELU
-| Dropout               |       | 0.25
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Flatten               |       |
-| Fully connected       |       | output 1024
-| Activation            |       | ELU
-| Dropout               |       | 0.3
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 1024 -> 512
-| Dropout               |       | 0.3
-| Activation            |       | ELU
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 512 -> 256
-| Activation            |       | ELU
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 256 -> 128
-| Activation            |       | ELU
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| Fully connected       |       | output 128 -> 1
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+- architecture.png
 - The model includes ELU layers to introduce nonlinearity.
 - The data is normalized and preproceesed using the  `process_get_data` function.
 
@@ -116,12 +86,11 @@ Here is the model architecture table
    image = image[50:130, :, :]
    image = cv2.resize(image, (64, 64))
    image = image.astype(np.float32)
-   image = image/255.0 - 0.5
    return image
   ```
 - Sample training images are added in folder sample_images.
 - Cropped and resized image samples are in preprocessed  
-
+- The image normalization is done using the lambda feature of the model.
 
 ####3. Creation of the Training Set & Training Process
 
@@ -134,4 +103,4 @@ Here is the model architecture table
 
 ####Fixing the first failed submission.
 - In the first submission the car moved out of track on couple of occasions at steep turns.
-- To fix it I made the model more complex by adding 2 more fully connected layers. That fixed the issue. 
+- To fix it I made the model more complex by adding 2 more fully connected layers. That fixed the issue.
