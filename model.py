@@ -129,7 +129,7 @@ def image_preprocessing(image):
 	image = image[50:130, :, :]
 	image = cv2.resize(image, (64, 64))
 	image = image.astype(np.float32)
-	image = image/255.0 - 0.5
+	#image = image/255.0 - 0.5
 	return image
 
 
@@ -140,7 +140,8 @@ def get_model():
 	ELU is used as activation function.
 	"""
 	model = Sequential()
-
+	# Normalize the image using lambda function in the model.
+	model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(64, 64, 3)))
 	# Convolution Layer 1.
 	model.add(Convolution2D(32, 5, 5, input_shape=(64, 64, 3), activation='elu'))
 
